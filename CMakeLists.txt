@@ -9,8 +9,12 @@ project(serving_drinks)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
     roscpp
+	tf2
     tf2_ros
-    Eigen3
+	geometry_msgs
+	std_msgs
+	move_base_msgs
+	actionlib
 )
 
 ## System dependencies are found with CMake's conventions
@@ -120,7 +124,7 @@ message("Value of include dir is " ${Eigen3_INCLUDE_DIRS})
 include_directories(
     include
     ${catkin_INCLUDE_DIRS}
-    /usr/include/eigen3
+	${Eigen3_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
