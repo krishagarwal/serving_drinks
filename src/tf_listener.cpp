@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
     ros::init(argc, argv, "simle_navigation_goals");
 
     ROS_INFO_STREAM("Start new");
-    MoveBaseClient ac("/marvin/move_base", true);
+    MoveBaseClient ac("/move_base", true);
 
     ROS_INFO_STREAM("Started waiting for server");
     while (!ac.waitForServer(ros::Duration(1.0)))
@@ -21,13 +21,13 @@ int main(int argc, char** argv) {
 
     move_base_msgs::MoveBaseGoal goal;
 
-    goal.target_pose.header.frame_id = "/marvin/base_footprint";
+    goal.target_pose.header.frame_id = "base_footprint";
     goal.target_pose.header.stamp = ros::Time::now();
     // goal.child_frame_id = "marvin_dest";
 
     goal.target_pose.pose.position.x = 1.0;
-    goal.target_pose.pose.position.y = 1.0;
-    goal.target_pose.pose.position.z = 1.0;
+    goal.target_pose.pose.position.y = 0.0;
+    goal.target_pose.pose.position.z = 0.0;
 
     goal.target_pose.pose.orientation.x = 0.0;
     goal.target_pose.pose.orientation.y = 0.0;
