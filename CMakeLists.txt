@@ -7,6 +7,8 @@ project(serving_drinks)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+set(Eigen3_DIR /usr/lib/cmake/eigen3/)
+
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     tf2_ros
@@ -112,8 +114,6 @@ catkin_package(
 ###########
 ## Build ##
 ###########
-
-message("Value of include dir is " ${Eigen3_INCLUDE_DIRS})
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations

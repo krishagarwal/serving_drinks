@@ -55,9 +55,9 @@
   <build_depend>tf2_ros</build_depend>
   <build_export_depend>tf2_ros</build_export_depend>
   <exec_depend>tf2_ros</exec_depend>
-  <build_depend>Eigen3</build_depend>
+  <!-- <build_depend>Eigen3</build_depend>
   <build_export_depend>Eigen3</build_export_depend>
-  <exec_depend>Eigen3</exec_depend>
+  <exec_depend>Eigen3</exec_depend> -->
   <!-- <build_depend>eigenpy</build_depend> -->
   <!-- <build_export_depend>eigenpy</build_export_depend> -->
   <!-- <exec_depend>eigenpy</exec_depend> -->

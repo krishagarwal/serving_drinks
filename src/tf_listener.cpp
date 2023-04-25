@@ -11,17 +11,19 @@ typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseCl
 int main(int argc, char** argv) {
     ros::init(argc, argv, "simle_navigation_goals");
 
-    ROS_INFO_STREAM("Start");
-    MoveBaseClient ac("move_base", true);
+    ROS_INFO_STREAM("Start new");
+    MoveBaseClient ac("/marvin/move_base", true);
 
     ROS_INFO_STREAM("Started waiting for server");
-    while (!ac.waitForServer(ros::Duration(5.0)));
+    while (!ac.waitForServer(ros::Duration(1.0)))
+        ROS_INFO_STREAM("Still waiting for signal");
     ROS_INFO_STREAM("Server ready");
 
     move_base_msgs::MoveBaseGoal goal;
 
-    goal.target_pose.header.frame_id = "base_link";
+    goal.target_pose.header.frame_id = "/marvin/base_footprint";
     goal.target_pose.header.stamp = ros::Time::now();
+    // goal.child_frame_id = "marvin_dest";
 
     goal.target_pose.pose.position.x = 1.0;
     goal.target_pose.pose.position.y = 1.0;
@@ -35,6 +37,10 @@ int main(int argc, char** argv) {
     ROS_INFO_STREAM("Sending goal");
 
     ac.sendGoal(goal);
+
+    ROS_INFO_STREAM("Sent goal");
+
+
     ac.waitForResult();
     if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
         ROS_INFO_STREAM("Moved 1 m forward");
