@@ -19,6 +19,16 @@ find_package(catkin REQUIRED COMPONENTS
 	actionlib
 )
 
+find_package(OpenCV REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(PkgConfig REQUIRED)
+find_package(Ceres REQUIRED)
+find_package(Boost REQUIRED COMPONENTS program_options)
+find_package(PythonLibs 2 REQUIRED)
+find_package(k4a REQUIRED)
+
+pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -123,8 +133,13 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
     include
-    ${catkin_INCLUDE_DIRS}
-	${Eigen3_INCLUDE_DIRS}
+	${catkin_INCLUDE_DIRS}
+	${GTK3_INCLUDE_DIRS}
+	${VISION_GEOMETRY_INCLUDE_DIRS}
+	${EIGEN3_INCLUDE_DIR}
+	${OpenCV_INCLUDE_DIRS}
+	${Boost_INCLUDE_DIRS}
+	/usr/include/python3.6
 )
 
 ## Declare a C++ library
@@ -140,7 +155,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(serving_drinks src/tf_listener.cpp)
+add_executable(serving_drinks src/serving_drinks.cpp src/SKConfig.cpp src/SKDepthViewer.cpp src/SKPacket.cpp src/SKPFaceDetector.cpp src/SKPVideoDisplay.cpp src/SKWrapper.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -154,7 +169,19 @@ add_executable(serving_drinks src/tf_listener.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
+	${catkin_LIBRARIES}
+	k4a
+	k4abt
+	k4arecord
+	pthread
+	GL
+	GLU
+	gthread-2.0
+	${OpenCV_LIBRARIES}
+	${GTK3_LIBRARIES}
+	${CERES_LIBRARIES}
+	${Boost_PROGRAM_OPTIONS_LIBRARY}
+	/usr/lib/python3.6/config-3.6m-x86_64-linux-gnu/libpython3.6.so
 )
 
 #############

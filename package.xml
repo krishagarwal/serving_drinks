@@ -55,12 +55,27 @@
   <build_depend>tf2_ros</build_depend>
   <build_export_depend>tf2_ros</build_export_depend>
   <exec_depend>tf2_ros</exec_depend>
-  <!-- <build_depend>Eigen3</build_depend>
+  <build_depend>OpenCV</build_depend>
+  <build_export_depend>OpenCV</build_export_depend>
+  <exec_depend>OpenCV</exec_depend>
+  <build_depend>Eigen3</build_depend>
   <build_export_depend>Eigen3</build_export_depend>
-  <exec_depend>Eigen3</exec_depend> -->
-  <!-- <build_depend>eigenpy</build_depend> -->
-  <!-- <build_export_depend>eigenpy</build_export_depend> -->
-  <!-- <exec_depend>eigenpy</exec_depend> -->
+  <exec_depend>Eigen3</exec_depend>
+  <build_depend>PkgConfig</build_depend>
+  <build_export_depend>PkgConfig</build_export_depend>
+  <exec_depend>PkgConfig</exec_depend>
+  <build_depend>Ceres</build_depend>
+  <build_export_depend>Ceres</build_export_depend>
+  <exec_depend>Ceres</exec_depend>
+  <build_depend>Boost</build_depend>
+  <build_export_depend>Boost</build_export_depend>
+  <exec_depend>Boost</exec_depend>
+  <build_depend>PythonLibs</build_depend>
+  <build_export_depend>PythonLibs</build_export_depend>
+  <exec_depend>PythonLibs</exec_depend>
+  <build_depend>k4a</build_depend>
+  <build_export_depend>k4a</build_export_depend>
+  <exec_depend>k4a</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
