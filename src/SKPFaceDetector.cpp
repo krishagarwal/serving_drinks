@@ -11,7 +11,7 @@ using namespace std;
 
 // #include <opencv2/opencv.hpp>
 
-SKPFaceDetector::SKPFaceDetector(SKWrapper& skw) : _recipients() {
+SKPFaceDetector::SKPFaceDetector(SKWrapper& skw) : _recipients(), buffer(&skw) {
     Py_Initialize();
     person_find = PyImport_ImportModule("person_find");
     cout << person_find << endl;
@@ -23,9 +23,9 @@ SKPFaceDetector::SKPFaceDetector(SKWrapper& skw) : _recipients() {
 }
 
 void SKPFaceDetector::getTargetEncoding() {
-    cv::Mat &inMat = buffer->getCVMat("RGB1080p");
-    buffer->allocateCVMat(inMat.rows, inMat.cols, CV_8UC3, "face_detections");
-    cv::Mat &faceMat = buffer->getCVMat("face_detections");
+    cv::Mat &inMat = buffer.getCVMat("RGB1080p");
+    buffer.allocateCVMat(inMat.rows, inMat.cols, CV_8UC3, "face_detections");
+    cv::Mat &faceMat = buffer.getCVMat("face_detections");
 
     cv::cvtColor(faceMat, faceMat, cv::COLOR_BGR2RGB);
     npy_intp dims[3] = {faceMat.rows, faceMat.cols, faceMat.channels()};
@@ -45,10 +45,10 @@ void SKPFaceDetector::getTargetEncoding() {
 
 bool SKPFaceDetector::findTargetId() {
     cout << "trying to find target id" << endl;
-    cv::Mat &inMat = buffer->getCVMat("RGB1080p");
-    buffer->allocateCVMat(inMat.rows, inMat.cols, CV_8UC3, "face_detections");
-    buffer->copyCVMat("RGB1080p", "face_detections");
-    cv::Mat scene = buffer->getCVMat("face_detections");
+    cv::Mat &inMat = buffer.getCVMat("RGB1080p");
+    buffer.allocateCVMat(inMat.rows, inMat.cols, CV_8UC3, "face_detections");
+    buffer.copyCVMat("RGB1080p", "face_detections");
+    cv::Mat scene = buffer.getCVMat("face_detections");
 
     cv::cvtColor(scene, scene, cv::COLOR_BGR2RGB);
     npy_intp scene_dims[3] = {scene.rows, scene.cols, scene.channels()};
@@ -68,7 +68,7 @@ bool SKPFaceDetector::findTargetId() {
         return false;
     }
     
-    k4a::capture cap = buffer->getCapture();
+    k4a::capture cap = buffer.getCapture();
     k4a::image depth_image = cap.get_depth_image();
     cv::Mat depth_mat(depth_image.get_height_pixels(), depth_image.get_width_pixels(), CV_16UC1, depth_image.get_buffer(), cv::Mat::AUTO_STEP);
     cv::Point2i point(x, y);
@@ -76,7 +76,7 @@ bool SKPFaceDetector::findTargetId() {
     uint16_t depth_value = depth_mat.at<uint16_t>(point);
 
     k4a_float3_t target_3d;
-    buffer->getSKWrapper()->getCalibration().convert_2d_to_3d(pnt, depth_value, K4A_CALIBRATION_TYPE_DEPTH, K4A_CALIBRATION_TYPE_DEPTH, &target_3d);
+    buffer.getSKWrapper()->getCalibration().convert_2d_to_3d(pnt, depth_value, K4A_CALIBRATION_TYPE_DEPTH, K4A_CALIBRATION_TYPE_DEPTH, &target_3d);
     tracker.enqueue_capture(cap, TIMEOUT);
 
     k4abt::frame frame = tracker.pop_result(TIMEOUT);
@@ -99,7 +99,7 @@ bool SKPFaceDetector::findTargetId() {
 
 bool SKPFaceDetector::find3DTargetPose() {
     cout << "trying to find target 3d position" << endl;
-    tracker.enqueue_capture(buffer->getCapture(), TIMEOUT);
+    tracker.enqueue_capture(buffer.getCapture(), TIMEOUT);
     k4abt::frame frame = tracker.pop_result(TIMEOUT);
     int targetIdx = -1;
     for (int i = 0; i < frame.get_num_bodies(); i++) {
@@ -112,17 +112,19 @@ bool SKPFaceDetector::find3DTargetPose() {
         cout << "target is not in image" << endl;
         return false;
     }
-    target_pos = frame.get_body_skeleton(targetIdx).joints[K4ABT_JOINT_NOSE].position;
-    cout << "person is at (" << target_pos.xyz.x << ", " << target_pos.xyz.x << ", " << target_pos.xyz.x << ")" << endl;
+    k4abt_joint_t target_joint = frame.get_body_skeleton(targetIdx).joints[K4ABT_JOINT_NOSE];
+    target_pos = target_joint.position;
+    target_orientation = target_joint.orientation;
+    cout << "person is at (" << target_pos.xyz.x << ", " << target_pos.xyz.y << ", " << target_pos.xyz.z << ")" << endl;
     return true;
 }
 
 bool SKPFaceDetector::chooseTarget() {
     cout << "trying to choose target" << endl;
-    cv::Mat &inMat = buffer->getCVMat("RGB1080p");
-    buffer->allocateCVMat(inMat.rows, inMat.cols, CV_8UC3, "face_detections");
-    buffer->copyCVMat("RGB1080p", "face_detections");
-    cv::Mat bgrMat = buffer->getCVMat("face_detections");
+    cv::Mat &inMat = buffer.getCVMat("RGB1080p");
+    buffer.allocateCVMat(inMat.rows, inMat.cols, CV_8UC3, "face_detections");
+    buffer.copyCVMat("RGB1080p", "face_detections");
+    cv::Mat bgrMat = buffer.getCVMat("face_detections");
     cv::Mat faceMat;
 
     cv::cvtColor(bgrMat, faceMat, cv::COLOR_BGR2RGB);
@@ -147,8 +149,12 @@ k4a_float3_t SKPFaceDetector::getTargetPosition() {
     return target_pos;
 }
 
+k4a_quaternion_t SKPFaceDetector::getTargetOrientation() {
+    return target_orientation;
+}
+
 void SKPFaceDetector::receiveFrame(SKPacket &skp) {
-    buffer = &skp;
+    buffer = skp;
 
     // if (!chose_target) {
     //     chooseTarget(skp);

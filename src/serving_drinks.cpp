@@ -5,6 +5,7 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
 #include <eigen3/Eigen/Geometry>
+#include <geometry_msgs/TransformStamped.h>
 
 #include "SKConfig.h"
 #include "SKPFaceDetector.h"
@@ -63,6 +64,10 @@ typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseCl
 int main(int argc, char** argv) {
     g_thread_init(NULL);
     ros::init(argc, argv, "simple_navigation_goals");
+    ros::NodeHandle node;
+    tf2_ros::Buffer tfBuffer;
+    tf2_ros::TransformListener tfListener(tfBuffer);
+    tf2_ros::TransformBroadcaster tf2;
     
     ROS_INFO_STREAM("Start new");
     MoveBaseClient ac("/move_base", true);
@@ -86,38 +91,114 @@ int main(int argc, char** argv) {
 
     while (true) {
         while (!spfd.find3DTargetPose()) {
+            ROS_INFO_STREAM("BAD");
             skw.doOnce();
             spfd.findTargetId();
         }
-        
-        move_base_msgs::MoveBaseGoal goal;
-
-        goal.target_pose.header.frame_id = "nav_kinect_depth_frame";
-        goal.target_pose.header.stamp = ros::Time::now();
 
         k4a_float3_t target_pos = spfd.getTargetPosition();
-        // goal.child_frame_id = "marvin_dest";
+        geometry_msgs::TransformStamped dest;
+        dest.header.stamp = ros::Time::now();
+        dest.header.frame_id = "nav_kinect_depth_optical_frame";
+        dest.child_frame_id = "dest_frame";
+        dest.transform.translation.x = target_pos.xyz.x / 1000.0;
+        dest.transform.translation.y = target_pos.xyz.y / 1000.0;
+        dest.transform.translation.z = target_pos.xyz.z / 1000.0;
 
-        goal.target_pose.pose.position.x = target_pos.xyz.x;
-        goal.target_pose.pose.position.y = target_pos.xyz.y;
-        goal.target_pose.pose.position.z = 0.0;
+        k4a_quaternion_t quat = spfd.getTargetOrientation();
 
-        goal.target_pose.pose.orientation.x = 0.0;
-        goal.target_pose.pose.orientation.y = 0.0;
-        goal.target_pose.pose.orientation.z = 0.0;
-        goal.target_pose.pose.orientation.w = 1.0;
+        double angle = std::atan2(2 * (quat.wxyz.w * quat.wxyz.x + quat.wxyz.y * quat.wxyz.z), 1 - 2 * (quat.wxyz.x * quat.wxyz.x + quat.wxyz.y * quat.wxyz.y));
+        // double angle = 2 * std::atan2(std::sqrt(1 + 2 * (quat.wxyz.w * quat.wxyz.y - quat.wxyz.x * quat.wxyz.z)), std::sqrt(1 - 2 * (quat.wxyz.w * quat.wxyz.y - quat.wxyz.x * quat.wxyz.z))) - M_PI / 2;
+        Eigen::AngleAxisd axis(angle, -1 * Eigen::Vector3d::UnitY());
 
-        ROS_INFO_STREAM("Sending goal");
-        ac.sendGoal(goal);
-        ROS_INFO_STREAM("Sent goal");
+        Eigen::Quaterniond out(axis);
+
+        dest.transform.rotation.x = out.x();
+        dest.transform.rotation.y = out.y();
+        dest.transform.rotation.z = out.z();
+        dest.transform.rotation.w = out.w();
+        
+        tf2.sendTransform(dest);
+
+        // geometry_msgs::TransformStamped dest3;
+        // dest3.header.stamp = ros::Time::now();
+        // dest3.header.frame_id = "nav_kinect_depth_optical_frame";
+        // dest3.child_frame_id = "dest3_frame";
+        // dest3.transform.translation.x = target_pos.xyz.x / 1000.0;
+        // dest3.transform.translation.y = target_pos.xyz.y / 1000.0;
+        // dest3.transform.translation.z = target_pos.xyz.z / 1000.0;
+
+        // dest3.transform.rotation.x = quat.wxyz.x;//out.x();
+        // dest3.transform.rotation.y = quat.wxyz.y;//out.y();
+        // dest3.transform.rotation.z = quat.wxyz.z;//out.z();
+        // dest3.transform.rotation.w = quat.wxyz.w;//out.w();
+        // tf2.sendTransform(dest3);
+
+        // geometry_msgs::TransformStamped moveLoc;
+
+
+        // try {
+        //     moveLoc = tfBuffer.lookupTransform("level_mux_map", "dest_frame", ros::Time(0));
+        // } catch (tf2::TransformException& ex) {
+        //     ROS_WARN("%s", ex.what());
+        //     ros::Duration(1.0).sleep();
+        //     continue;
+        // }
+
+        
+        
+        // move_base_msgs::MoveBaseGoal goal;
+
+        // goal.target_pose.header.frame_id = "level_mux_map"; // level_mux_map_frame
+        // goal.target_pose.header.stamp = ros::Time::now();
+
+        // // goal.child_frame_id = "marvin_dest";
+
+        // goal.target_pose.pose.position.x = moveLoc.transform.translation.x;
+        // goal.target_pose.pose.position.y = moveLoc.transform.translation.y;
+        // goal.target_pose.pose.position.z = 0.0;
+
+        // goal.target_pose.pose.orientation.x = 0.0;
+        // goal.target_pose.pose.orientation.y = 0.0;
+        // goal.target_pose.pose.orientation.z = 0.0;
+        // goal.target_pose.pose.orientation.w = 1.0;
+
+        // ROS_INFO_STREAM("Sending goal");
+        // ac.sendGoal(goal);
+        // ROS_INFO_STREAM("Sent goal");
+        skw.doOnce();
+
+        // ac.waitForResult();
+        // if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+        //     ROS_INFO_STREAM("Moved 1 m forward");
+        // else
+        //     ROS_INFO_STREAM("Failed to move 1 m forward");
     }
+
+    // move_base_msgs::MoveBaseGoal goal;
+
+    // goal.target_pose.header.frame_id = "base_link";
+    // goal.target_pose.header.stamp = ros::Time::now();
+
+    // goal.target_pose.pose.position.x = 1.0;
+    // goal.target_pose.pose.position.y = 0.0;
+    // goal.target_pose.pose.position.z = 0.0;
+
+    // goal.target_pose.pose.orientation.x = 0.0;
+    // goal.target_pose.pose.orientation.y = 0.0;
+    // goal.target_pose.pose.orientation.z = 0.0;
+    // goal.target_pose.pose.orientation.w = 1.0;
+
+    // ROS_INFO_STREAM("Sending goal");
+    // ac.sendGoal(goal);
+    // ROS_INFO_STREAM("Sent goal");
 
     // ac.waitForResult();
     // if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
     //     ROS_INFO_STREAM("Moved 1 m forward");
     // else
     //     ROS_INFO_STREAM("Failed to move 1 m forward");
-    // return 0;
+    return 0;
     
     // ros::NodeHandle node;
     // tf2_ros::Buffer tfBuffer;
