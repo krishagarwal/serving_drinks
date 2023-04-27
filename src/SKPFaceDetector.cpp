@@ -72,10 +72,10 @@ bool SKPFaceDetector::findTargetId() {
     long x = PyLong_AS_LONG(first), y = PyLong_AS_LONG(second);
     cout << "got x and y" << endl;
 
-    Py_DECREF(scene_numpy_array);
-    Py_DECREF(found);
-    Py_DECREF(first);
-    Py_DECREF(second);
+    // Py_DECREF(scene_numpy_array);
+    // Py_DECREF(found);
+    // Py_DECREF(first);
+    // Py_DECREF(second);
 
     if (x == -1 && y == -1) {
         cout << "could not find target in frame" << endl;
