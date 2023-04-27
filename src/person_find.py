@@ -18,11 +18,12 @@ def get_encoding(image):
 def find_person(image, original_encoding):
     loc = face_recognition.face_locations(image)
     enc = face_recognition.face_encodings(image, loc)
-    print(loc)
     print("Number of faces: ", len(loc))
     if(len(enc) > 0):
         for (top, right, bottom, left), face_encoding in zip(loc, enc):
             center = ((top + bottom) // 2, (left + right) // 2)
-            if face_recognition.compare_faces([original_encoding], face_encoding):
+            results = face_recognition.compare_faces([original_encoding], face_encoding, tolerance=0.55)
+            print("Results: ", results)
+            if results[0]:
                 return center
     return (-1, -1)

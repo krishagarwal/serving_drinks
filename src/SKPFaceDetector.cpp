@@ -81,7 +81,7 @@ bool SKPFaceDetector::findTargetId() {
     int minIdx = -1;
     for (int i = 0; i < frame.get_num_bodies(); i++) {
         k4abt_skeleton_t curr = frame.get_body_skeleton(i);
-        k4a_float3_t nose = curr.joints[K4ABT_JOINT_NOSE].position;
+        k4a_float3_t nose = curr.joints[K4ABT_JOINT_SPINE_CHEST].position;
         float dx = target_3d.xyz.x - nose.xyz.x, dy = target_3d.xyz.y - nose.xyz.y, dz = target_3d.xyz.z - nose.xyz.z;
         float dist = dx * dx + dy * dy + dz * dz;
         if (dist < minDist) {
