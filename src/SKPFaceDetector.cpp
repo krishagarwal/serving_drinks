@@ -17,17 +17,16 @@ SKPFaceDetector::SKPFaceDetector(SKWrapper& skw) : _recipients(), buffer(&skw) {
     cout << person_find << endl;
     get_encoding = PyObject_GetAttrString(person_find, "get_encoding");
     find_person = PyObject_GetAttrString(person_find, "find_person");
+    get_initial = PyObject_GetAttrString(person_find, "get_initial");
     k4abt_tracker_configuration_t tracker_config = K4ABT_TRACKER_CONFIG_DEFAULT;
     tracker = k4abt::tracker::create(skw.getCalibration(), tracker_config);
     _import_array();
+    cv::namedWindow("image");
 }
 
 void SKPFaceDetector::getTargetEncoding() {
-    cv::Mat &inMat = buffer.getCVMat("RGB1080p");
-    buffer.allocateCVMat(inMat.rows, inMat.cols, CV_8UC3, "face_detections");
-    cv::Mat &faceMat = buffer.getCVMat("face_detections");
+    cv::Mat &faceMat = buffer.getCVMat("RGB1080p");
 
-    cv::cvtColor(faceMat, faceMat, cv::COLOR_BGR2RGB);
     npy_intp dims[3] = {faceMat.rows, faceMat.cols, faceMat.channels()};
     PyObject* numpy_array = PyArray_SimpleNewFromData(3, dims, NPY_UINT8, faceMat.data);
     target_encoding = PyObject_CallFunctionObjArgs(get_encoding, numpy_array, nullptr);
@@ -45,30 +44,12 @@ void SKPFaceDetector::getTargetEncoding() {
 
 bool SKPFaceDetector::findTargetId() {
     cout << "trying to find target id" << endl;
-    cv::Mat &inMat = buffer.getCVMat("RGB1080p");
-    buffer.allocateCVMat(inMat.rows, inMat.cols, CV_8UC3, "face_detections");
-    buffer.copyCVMat("RGB1080p", "face_detections");
-    cv::Mat sceneIn = buffer.getCVMat("face_detections");
-    // cout << sceneIn << endl;
-
-    cv::Mat scene;
-
-    cout << "1" << endl;
-    cv::cvtColor(sceneIn, scene, cv::COLOR_BGR2RGB);
-    // cout << scene;
-    cout << "2" << endl;
+    cv::Mat scene = buffer.getCVMat("RGB1080p");
     npy_intp scene_dims[3] = {scene.rows, scene.cols, scene.channels()};
-    cout << "3" << endl;
     PyObject* scene_numpy_array = PyArray_SimpleNewFromData(3, scene_dims, NPY_UINT8, scene.data);
-    cout << "4" << endl;
-    // cout << scene_numpy_array << endl;
-    // cout << scene.data << endl;
     PyObject* found = PyObject_CallFunctionObjArgs(find_person, scene_numpy_array, target_encoding, nullptr);
-    cout << "5" << endl;
     PyObject* first = PyTuple_GetItem(found, 0);
-    cout << "6" << endl;
     PyObject* second = PyTuple_GetItem(found, 1);
-    cout << "7" << endl;
     long x = PyLong_AS_LONG(first), y = PyLong_AS_LONG(second);
     cout << "got x and y" << endl;
 
@@ -137,27 +118,23 @@ bool SKPFaceDetector::find3DTargetPose() {
 
 bool SKPFaceDetector::chooseTarget() {
     cout << "trying to choose target" << endl;
-    cv::Mat &inMat = buffer.getCVMat("RGB1080p");
-    buffer.allocateCVMat(inMat.rows, inMat.cols, CV_8UC3, "face_detections");
-    buffer.copyCVMat("RGB1080p", "face_detections");
-    cv::Mat bgrMat = buffer.getCVMat("face_detections");
-    cv::Mat faceMat;
+    target_encoding = PyObject_CallFunctionObjArgs(get_initial, nullptr);
+    // cv::Mat &faceMat = buffer.getCVMat("RGB1080p");
 
-    cv::cvtColor(bgrMat, faceMat, cv::COLOR_BGR2RGB);
-    npy_intp dims[3] = {faceMat.rows, faceMat.cols, faceMat.channels()};
-    PyObject* numpy_array = PyArray_SimpleNewFromData(3, dims, NPY_UINT8, faceMat.data);
-    target_encoding = PyObject_CallFunctionObjArgs(get_encoding, numpy_array, nullptr);
-    int encoding_length = PyArray_DIM(target_encoding, 0);
-    if (encoding_length == 0) {
-        cout << "could not find any faces" << endl;
-        return false;
-    }
-    cout << "found face, encoding = ";
-    double* enc = (double*) PyArray_DATA(target_encoding);
-    for (int i = 0; i < encoding_length; i++) {
-        cout << enc[i] << " ";
-    }
-    cout << endl;
+    // npy_intp dims[3] = {faceMat.rows, faceMat.cols, faceMat.channels()};
+    // PyObject* numpy_array = PyArray_SimpleNewFromData(3, dims, NPY_UINT8, faceMat.data);
+    // target_encoding = PyObject_CallFunctionObjArgs(get_encoding, numpy_array, nullptr);
+    // int encoding_length = PyArray_DIM(target_encoding, 0);
+    // if (encoding_length == 0) {
+    //     cout << "could not find any faces" << endl;
+    //     return false;
+    // }
+    // cout << "found face, encoding = ";
+    // double* enc = (double*) PyArray_DATA(target_encoding);
+    // for (int i = 0; i < encoding_length; i++) {
+    //     cout << enc[i] << " ";
+    // }
+    // cout << endl;
     return true;
 }
 
@@ -171,6 +148,9 @@ k4a_quaternion_t SKPFaceDetector::getTargetOrientation() {
 
 void SKPFaceDetector::receiveFrame(SKPacket &skp) {
     buffer = skp;
+    cv::Mat inMat = buffer.getCVMat("RGB1080p");
+    cv::imshow("image", inMat);
+    cv::waitKey(200);
 
     // if (!chose_target) {
     //     chooseTarget(skp);

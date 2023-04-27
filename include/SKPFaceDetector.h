@@ -27,6 +27,7 @@ protected:
     std::vector<SKPRecipient*> _recipients;
     SKPacket buffer;
     PyObject* person_find;
+    PyObject* get_initial;
     PyObject* get_encoding;
     PyObject* find_person;
     PyObject* target_encoding;

@@ -85,6 +85,7 @@ int main(int argc, char** argv) {
     do {
         skw.doOnce();
     } while (!spfd.chooseTarget());
+    std::cout << "Target chosen" << std::endl;
 
     while (!spfd.findTargetId())
         skw.doOnce();
@@ -93,9 +94,9 @@ int main(int argc, char** argv) {
 
     while (true) {
         while (!spfd.find3DTargetPose()) {
-            ROS_INFO_STREAM("BAD");
-            while (!spfd.findTargetId())
+            while (!spfd.findTargetId()) //Face recognition
                 skw.doOnce();
+            skw.doOnce();
         }
 
         k4a_float3_t target_pos = spfd.getTargetPosition();
@@ -160,7 +161,7 @@ int main(int argc, char** argv) {
         geometry_msgs::TransformStamped moveLoc;
 
         try {
-            moveLoc = tfBuffer.lookupTransform("level_mux_map", "looking_at_dest", ros::Time(0));
+            moveLoc = tfBuffer.lookupTransform("base_link", "looking_at_dest", ros::Time(0));
         } catch (tf2::TransformException& ex) {
             ROS_WARN("%s", ex.what());
             ros::Duration(1.0).sleep();
@@ -169,7 +170,7 @@ int main(int argc, char** argv) {
         
         move_base_msgs::MoveBaseGoal goal;
 
-        goal.target_pose.header.frame_id = "level_mux_map"; // level_mux_map_frame
+        goal.target_pose.header.frame_id = "base_link"; // level_mux_map_frame
         goal.target_pose.header.stamp = ros::Time::now();
 
         // goal.child_frame_id = "marvin_dest";
@@ -177,6 +178,14 @@ int main(int argc, char** argv) {
         goal.target_pose.pose.position.x = moveLoc.transform.translation.x;
         goal.target_pose.pose.position.y = moveLoc.transform.translation.y;
         goal.target_pose.pose.position.z = 0.0;
+
+        if (goal.target_pose.pose.position.x * goal.target_pose.pose.position.x
+                + goal.target_pose.pose.position.y * goal.target_pose.pose.position.y <= 2 ) {
+            // ac.waitForResult();
+            rate.sleep();
+            skw.doOnce();
+            continue;
+        }
 
         goal.target_pose.pose.orientation.x = moveLoc.transform.rotation.x;
         goal.target_pose.pose.orientation.y = moveLoc.transform.rotation.y;

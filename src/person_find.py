@@ -1,5 +1,13 @@
 import face_recognition
 import numpy as np
+import time
+
+def get_initial():
+    print("in get_initial")
+    time.sleep(3)
+    image = face_recognition.load_image_file("/root/projects/catkin_ws/src/serving_drinks/src/harshal.jpg")
+    encodings = face_recognition.face_encodings(image)
+    return encodings[0]
 
 def get_encoding(image):
     encodings = face_recognition.face_encodings(image)
@@ -8,12 +16,9 @@ def get_encoding(image):
     return encodings[0]
 
 def find_person(image, original_encoding):
-    print("Entered find_person")
-    print(type(image))
-    print("IMAGE: ", image)
-    # print("ENCODING: ", original_encoding)
     loc = face_recognition.face_locations(image)
     enc = face_recognition.face_encodings(image, loc)
+    print(loc)
     print("Number of faces: ", len(loc))
     if(len(enc) > 0):
         for (top, right, bottom, left), face_encoding in zip(loc, enc):
