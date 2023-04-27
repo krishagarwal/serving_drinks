@@ -48,15 +48,29 @@ bool SKPFaceDetector::findTargetId() {
     cv::Mat &inMat = buffer.getCVMat("RGB1080p");
     buffer.allocateCVMat(inMat.rows, inMat.cols, CV_8UC3, "face_detections");
     buffer.copyCVMat("RGB1080p", "face_detections");
-    cv::Mat scene = buffer.getCVMat("face_detections");
+    cv::Mat sceneIn = buffer.getCVMat("face_detections");
+    // cout << sceneIn << endl;
 
-    cv::cvtColor(scene, scene, cv::COLOR_BGR2RGB);
+    cv::Mat scene;
+
+    cout << "1" << endl;
+    cv::cvtColor(sceneIn, scene, cv::COLOR_BGR2RGB);
+    // cout << scene;
+    cout << "2" << endl;
     npy_intp scene_dims[3] = {scene.rows, scene.cols, scene.channels()};
+    cout << "3" << endl;
     PyObject* scene_numpy_array = PyArray_SimpleNewFromData(3, scene_dims, NPY_UINT8, scene.data);
+    cout << "4" << endl;
+    // cout << scene_numpy_array << endl;
+    // cout << scene.data << endl;
     PyObject* found = PyObject_CallFunctionObjArgs(find_person, scene_numpy_array, target_encoding, nullptr);
+    cout << "5" << endl;
     PyObject* first = PyTuple_GetItem(found, 0);
+    cout << "6" << endl;
     PyObject* second = PyTuple_GetItem(found, 1);
+    cout << "7" << endl;
     long x = PyLong_AS_LONG(first), y = PyLong_AS_LONG(second);
+    cout << "got x and y" << endl;
 
     Py_DECREF(scene_numpy_array);
     Py_DECREF(found);
@@ -74,6 +88,8 @@ bool SKPFaceDetector::findTargetId() {
     cv::Point2i point(x, y);
     k4a_float2_t pnt = {x, y};
     uint16_t depth_value = depth_mat.at<uint16_t>(point);
+
+    cout << "got depth value" << endl;
 
     k4a_float3_t target_3d;
     buffer.getSKWrapper()->getCalibration().convert_2d_to_3d(pnt, depth_value, K4A_CALIBRATION_TYPE_DEPTH, K4A_CALIBRATION_TYPE_DEPTH, &target_3d);

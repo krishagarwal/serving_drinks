@@ -88,12 +88,14 @@ int main(int argc, char** argv) {
 
     while (!spfd.findTargetId())
         skw.doOnce();
+    
+    ros::Rate rate(10);
 
     while (true) {
         while (!spfd.find3DTargetPose()) {
             ROS_INFO_STREAM("BAD");
-            skw.doOnce();
-            spfd.findTargetId();
+            while (!spfd.findTargetId())
+                skw.doOnce();
         }
 
         k4a_float3_t target_pos = spfd.getTargetPosition();
@@ -107,7 +109,7 @@ int main(int argc, char** argv) {
 
         k4a_quaternion_t quat = spfd.getTargetOrientation();
 
-        double angle = std::atan2(2 * (quat.wxyz.w * quat.wxyz.x + quat.wxyz.y * quat.wxyz.z), 1 - 2 * (quat.wxyz.x * quat.wxyz.x + quat.wxyz.y * quat.wxyz.y));
+        double angle = std::atan2(2 * (quat.wxyz.w * quat.wxyz.x + quat.wxyz.y * quat.wxyz.z), 1 - 2 * (quat.wxyz.x * quat.wxyz.x + quat.wxyz.y * quat.wxyz.y)) + M_PI;
         // double angle = 2 * std::atan2(std::sqrt(1 + 2 * (quat.wxyz.w * quat.wxyz.y - quat.wxyz.x * quat.wxyz.z)), std::sqrt(1 - 2 * (quat.wxyz.w * quat.wxyz.y - quat.wxyz.x * quat.wxyz.z))) - M_PI / 2;
         Eigen::AngleAxisd axis(angle, -1 * Eigen::Vector3d::UnitY());
 
@@ -119,6 +121,27 @@ int main(int argc, char** argv) {
         dest.transform.rotation.w = out.w();
         
         tf2.sendTransform(dest);
+
+        geometry_msgs::TransformStamped look;
+        look.header.stamp = ros::Time::now();
+        look.header.frame_id = "dest_frame";
+        look.child_frame_id = "looking_at_dest";
+        
+        Eigen::AngleAxisd xRotate(M_PI / 2, Eigen::Vector3d::UnitX());
+        Eigen::Quaterniond xrotQuat(xRotate.toRotationMatrix());
+        xrotQuat.normalize();
+
+        look.transform.translation.x = -1.0;
+        look.transform.translation.y = 0.0;
+        look.transform.translation.z = 0.0;
+
+        look.transform.rotation.x = xrotQuat.x();
+        look.transform.rotation.y = xrotQuat.y();
+        look.transform.rotation.z = xrotQuat.z();
+        look.transform.rotation.w = xrotQuat.w();
+
+        tf2.sendTransform(look);
+
 
         // geometry_msgs::TransformStamped dest3;
         // dest3.header.stamp = ros::Time::now();
@@ -134,45 +157,44 @@ int main(int argc, char** argv) {
         // dest3.transform.rotation.w = quat.wxyz.w;//out.w();
         // tf2.sendTransform(dest3);
 
-        // geometry_msgs::TransformStamped moveLoc;
+        geometry_msgs::TransformStamped moveLoc;
 
-
-        // try {
-        //     moveLoc = tfBuffer.lookupTransform("level_mux_map", "dest_frame", ros::Time(0));
-        // } catch (tf2::TransformException& ex) {
-        //     ROS_WARN("%s", ex.what());
-        //     ros::Duration(1.0).sleep();
-        //     continue;
-        // }
-
+        try {
+            moveLoc = tfBuffer.lookupTransform("level_mux_map", "looking_at_dest", ros::Time(0));
+        } catch (tf2::TransformException& ex) {
+            ROS_WARN("%s", ex.what());
+            ros::Duration(1.0).sleep();
+            continue;
+        }
         
-        
-        // move_base_msgs::MoveBaseGoal goal;
+        move_base_msgs::MoveBaseGoal goal;
 
-        // goal.target_pose.header.frame_id = "level_mux_map"; // level_mux_map_frame
-        // goal.target_pose.header.stamp = ros::Time::now();
+        goal.target_pose.header.frame_id = "level_mux_map"; // level_mux_map_frame
+        goal.target_pose.header.stamp = ros::Time::now();
 
-        // // goal.child_frame_id = "marvin_dest";
+        // goal.child_frame_id = "marvin_dest";
 
-        // goal.target_pose.pose.position.x = moveLoc.transform.translation.x;
-        // goal.target_pose.pose.position.y = moveLoc.transform.translation.y;
-        // goal.target_pose.pose.position.z = 0.0;
+        goal.target_pose.pose.position.x = moveLoc.transform.translation.x;
+        goal.target_pose.pose.position.y = moveLoc.transform.translation.y;
+        goal.target_pose.pose.position.z = 0.0;
 
-        // goal.target_pose.pose.orientation.x = 0.0;
-        // goal.target_pose.pose.orientation.y = 0.0;
-        // goal.target_pose.pose.orientation.z = 0.0;
-        // goal.target_pose.pose.orientation.w = 1.0;
+        goal.target_pose.pose.orientation.x = moveLoc.transform.rotation.x;
+        goal.target_pose.pose.orientation.y = moveLoc.transform.rotation.y;
+        goal.target_pose.pose.orientation.z = moveLoc.transform.rotation.z;
+        goal.target_pose.pose.orientation.w = moveLoc.transform.rotation.w;
 
-        // ROS_INFO_STREAM("Sending goal");
-        // ac.sendGoal(goal);
+        ROS_INFO_STREAM("Sending goal");
+        ac.sendGoal(goal);
         // ROS_INFO_STREAM("Sent goal");
-        skw.doOnce();
 
         // ac.waitForResult();
         // if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
         //     ROS_INFO_STREAM("Moved 1 m forward");
         // else
         //     ROS_INFO_STREAM("Failed to move 1 m forward");
+        
+        rate.sleep();
+        skw.doOnce();
     }
 
     // move_base_msgs::MoveBaseGoal goal;
